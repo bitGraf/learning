@@ -524,16 +524,28 @@ var (
 	}
 )
 
+func get_index(x float64, N int) int {
+	n := int(x * float64(N-1))
+
+	if n < 0 {
+		n = 0
+	} else if n >= N {
+		n = N - 1
+	}
+
+	return n
+}
+
 func parula(x float64) [3]float64 {
 	N := len(parula_table)
-	n := int(x * float64(N-1))
+	n := get_index(x, N)
 
 	return parula_table[n]
 }
 
 func plasma(x float64) [3]float64 {
-	N := len(plasma_table)
-	n := int(x * float64(N-1))
+	N := len(parula_table)
+	n := get_index(x, N)
 
 	return plasma_table[n]
 }
@@ -548,6 +560,33 @@ const (
 )
 
 func colormap(x float64, which colormap_type) [3]float64 {
+	switch which {
+	case Parula:
+		return parula(x)
+	case Plasma:
+		return plasma(x)
+	default:
+		return [3]float64{0, 0, 0}
+	}
+}
+
+func make_bands(x float64, numBands int) float64 {
+	if numBands == 0 {
+		return x
+	}
+
+	n := int(x * float64(numBands))
+
+	if n < 0 {
+		n = 0
+	} else if n > numBands {
+		n = numBands
+	}
+
+	return float64(n) / float64(numBands)
+}
+func colormapN(x float64, which colormap_type, N int) [3]float64 {
+	x = make_bands(x, N)
 	switch which {
 	case Parula:
 		return parula(x)
