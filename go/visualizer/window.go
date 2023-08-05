@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -42,7 +42,7 @@ func (this *Window) InitGLFW(window_width, window_height int, key_callback key_c
 		return false
 	}
 	version := gl.GoStr(gl.GetString(gl.VERSION))
-	log.Println("OpenGL version", version)
+	fmt.Println("OpenGL version", version)
 
 	// Set callbacks
 	this.window.SetKeyCallback(func(_ *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {

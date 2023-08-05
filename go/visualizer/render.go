@@ -2,22 +2,38 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
+	"github.com/go-gl/gltext"
 )
 
 type Renderer struct {
 	vbo, vao uint32
 	shader   uint32
+
+	// shader locations
+	xpos_loc   int32
+	ypos_loc   int32
+	xscale_loc int32
+	yscale_loc int32
+
+	color_loc int32
+
+	font *gltext.Font
 }
 
 func (this *Renderer) Init() {
 	// create rect buffer
 	rect := []float32{
-		0, 0.5, 0,
-		-0.5, -0.5, 0,
-		0.5, -0.5, 0,
+		0.0, 0.0, 0.0,
+		1.0, 0.0, 0.0,
+		1.0, 1.0, 0.0,
+
+		0.0, 0.0, 0.0,
+		1.0, 1.0, 0.0,
+		0.0, 1.0, 0.0,
 	}
 
 	gl.GenBuffers(1, &this.vbo)
@@ -34,25 +50,81 @@ func (this *Renderer) Init() {
 	vertSrc := `
 		#version 410
 		in vec3 vp;
+
+		// coords in range [0,1] from bottom left corner
+		uniform float xpos;
+		uniform float ypos;
+		uniform float xscale;
+		uniform float yscale;
+
 		void main() {
-			gl_Position = vec4(vp, 1.0);
+			gl_Position = vec4(2*(vp.x*xscale+xpos) - 1, 2*(vp.y*yscale+ypos) - 1, vp.z, 1.0);
 		}
 	` + "\x00" // null-terminate so C-bindings can handle it
 	fragSrc := `
 		#version 410
 		out vec4 frag_colour;
+
+		uniform vec3 color;
+
 		void main() {
-			frag_colour = vec4(1, 1, 1, 1);
+			frag_colour = vec4(color, 1);
 		}
 	` + "\x00" // null-terminate so C-bindings can handle it
 	this.shader = CreateShader(vertSrc, fragSrc)
+
+	this.xpos_loc = gl.GetUniformLocation(this.shader, gl.Str("xpos"+"\x00"))
+	this.ypos_loc = gl.GetUniformLocation(this.shader, gl.Str("ypos"+"\x00"))
+	this.xscale_loc = gl.GetUniformLocation(this.shader, gl.Str("xscale"+"\x00"))
+	this.yscale_loc = gl.GetUniformLocation(this.shader, gl.Str("yscale"+"\x00"))
+	this.color_loc = gl.GetUniformLocation(this.shader, gl.Str("color"+"\x00"))
+
+	gl.UseProgram(this.shader)
+	gl.Uniform1f(this.xpos_loc, 0)
+	gl.Uniform1f(this.ypos_loc, 0)
+	gl.Uniform1f(this.xscale_loc, 1)
+	gl.Uniform1f(this.yscale_loc, 1)
+	gl.Uniform3f(this.color_loc, 1, 1, 1)
+
+	// Load font
+	//var err error
+	//this.font, err = loadFont("FiraCode-Regular.ttf", int32(12))
+	//if err != nil {
+	//	log.Printf("Could not load font file: %v", err)
+	//}
 }
 
-func (this *Renderer) DrawRect() {
+func (this *Renderer) Shutdown() {
+	if this.font != nil {
+		this.font.Release()
+	}
+}
+
+// loadFont loads the specified font at the given scale.
+func loadFont(file string, scale int32) (*gltext.Font, error) {
+	fd, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+
+	defer fd.Close()
+
+	//return gltext.LoadTruetype(fd, scale, 32, 127, gltext.LeftToRight)
+	return nil, fmt.Errorf("hmm")
+}
+
+func (this *Renderer) DrawRect(posx, posy float32, scalex, scaley float32, r, g, b float32) {
 	gl.UseProgram(this.shader)
 
+	gl.Uniform1f(this.xpos_loc, posx)
+	gl.Uniform1f(this.ypos_loc, posy)
+	gl.Uniform1f(this.xscale_loc, scalex)
+	gl.Uniform1f(this.yscale_loc, scaley)
+
+	gl.Uniform3f(this.color_loc, r, g, b)
+
 	gl.BindVertexArray(this.vao)
-	gl.DrawArrays(gl.TRIANGLES, 0, 3)
+	gl.DrawArrays(gl.TRIANGLES, 0, 6)
 }
 
 func CreateShader(vertSrc, fragSrc string) uint32 {
