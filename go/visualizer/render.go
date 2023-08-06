@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"strings"
 
-	"github.com/go-gl/gl/v4.6-core/gl"
-	"github.com/go-gl/gltext"
+	"github.com/go-gl/gl/all-core/gl"
+	"github.com/nullboundary/glfont"
 )
 
 type Renderer struct {
@@ -21,10 +21,10 @@ type Renderer struct {
 
 	color_loc int32
 
-	font *gltext.Font
+	font *glfont.Font
 }
 
-func (this *Renderer) Init() {
+func (this *Renderer) Init(width, height int) {
 	// create rect buffer
 	rect := []float32{
 		0.0, 0.0, 0.0,
@@ -86,31 +86,18 @@ func (this *Renderer) Init() {
 	gl.Uniform1f(this.yscale_loc, 1)
 	gl.Uniform3f(this.color_loc, 1, 1, 1)
 
-	// Load font
-	//var err error
-	//this.font, err = loadFont("FiraCode-Regular.ttf", int32(12))
-	//if err != nil {
-	//	log.Printf("Could not load font file: %v", err)
-	//}
+	//load font (fontfile, font scale, window width, window height
+	var err error
+	this.font, err = glfont.LoadFont("FiraCode-Regular.ttf", int32(52), width, height)
+	if err != nil {
+		log.Panicf("LoadFont: %v", err)
+	}
 }
 
 func (this *Renderer) Shutdown() {
-	if this.font != nil {
-		this.font.Release()
-	}
-}
-
-// loadFont loads the specified font at the given scale.
-func loadFont(file string, scale int32) (*gltext.Font, error) {
-	fd, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	defer fd.Close()
-
-	//return gltext.LoadTruetype(fd, scale, 32, 127, gltext.LeftToRight)
-	return nil, fmt.Errorf("hmm")
+	//if this.font != nil {
+	//	this.font.Release()
+	//}
 }
 
 func (this *Renderer) DrawRect(posx, posy float32, scalex, scaley float32, r, g, b float32) {

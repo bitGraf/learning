@@ -26,6 +26,8 @@ type Heat_1D_bar struct {
 	u_last []float64
 	x      []float64
 
+	CurrentTime float64
+
 	// internal params
 	internal struct {
 		r float64
@@ -79,10 +81,12 @@ func (b *Heat_1D_bar) Reset() {
 
 	b.U[0] = b.T1
 	b.U[b.N] = b.T2
+	b.CurrentTime = 0
 }
 
 func (b *Heat_1D_bar) Update_FTCS() {
 	r := b.internal.r
+	b.CurrentTime += b.delt
 
 	copy(b.u_last, b.U)
 
@@ -95,6 +99,7 @@ func (b *Heat_1D_bar) Update_FTCS() {
 
 func (b *Heat_1D_bar) Update_BTCS() {
 	r := b.internal.r
+	b.CurrentTime += b.delt
 
 	copy(b.u_last, b.U)
 
@@ -146,6 +151,7 @@ func (b *Heat_1D_bar) Update_BTCS() {
 
 func (b *Heat_1D_bar) Update_CTCS() {
 	r := b.internal.r
+	b.CurrentTime += b.delt
 
 	copy(b.u_last, b.U)
 

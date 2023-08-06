@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"visualizer/solver"
 
-	"github.com/go-gl/gl/v4.6-core/gl"
+	"github.com/go-gl/gl/all-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
@@ -43,11 +43,11 @@ var (
 
 func main() {
 	// set these by command-line args
-	colormap_name := flag.String("cmap", "parula", "Name of colormap to use. To get a list of supported maps, use -list-cmaps flag")
+	colormap_name := flag.String("cmap", "plasma", "Name of colormap to use. To get a list of supported maps, use -list-cmaps flag")
 	colormap_list := flag.Bool("list-cmaps", false, "Print list of supported maps")
 	tight := flag.Bool("tight", false, "Shrink window to min size")
 	window_width := flag.Int("width", 1024, "Window width")
-	window_height := flag.Int("height", 480, "Window height")
+	window_height := flag.Int("height", 240, "Window height")
 	num_bands := flag.Int("bands", 10, "Number of discrete color bands. 0 means continuous")
 	flag.Parse()
 	if *tight {
@@ -80,14 +80,14 @@ func main() {
 	}
 	// Create render data
 	var renderer Renderer
-	renderer.Init()
+	renderer.Init(window.width, window.height)
 
 	defer func() {
 		renderer.Shutdown()
 		window.Close()
 	}()
 
-	DrawColormap := func(width, height int) {
+	DrawColormap := func(width, height int, min_temp, max_temp float64) {
 		N := 255
 		border_x := 2 / float32(width)  // 2 pixels
 		border_y := 3 / float32(height) // 2 pixels
@@ -103,11 +103,15 @@ func main() {
 
 			renderer.DrawRect(xpos+border_x, ypos+border_y, dx, dy-2*border_y, float32(color[0]), float32(color[1]), float32(color[2]))
 		}
+
+		renderer.font.Printf(12, (1-ypos)*float32(height)-12, 0.5, "%.0fK", min_temp)
+		renderer.font.Printf(float32(width-80), (1-ypos)*float32(height)-12, 0.5, "%.0fK", max_temp)
 	}
-	DrawHeatBar := func(u []float64, width, height int, min, max float64) {
+	DrawHeatBar := func(u []float64, width, height int, min_temp, max_temp float64) {
 		N := len(u) - 1
 		dx := float32(1.0) / float32(N+1)
 		dy := float32(64) / float32(height) // 100 pixels
+		border_x := 1 / float32(width)      // 1 pixels
 		var ypos float32
 		if *tight {
 			ypos = 0
@@ -119,24 +123,26 @@ func main() {
 			xpos := dx * float32(n)
 
 			T := u[n]
-			f := (T - min) / (max - min)
+			f := (T - min_temp) / (max_temp - min_temp)
 
 			color := colormapN(f, map_type, *num_bands)
 
-			renderer.DrawRect(xpos, ypos, dx, dy, float32(color[0]), float32(color[1]), float32(color[2]))
+			renderer.DrawRect(xpos, ypos, dx-border_x, dy, float32(color[0]), float32(color[1]), float32(color[2]))
 		}
 	}
 
 	// Create heat bar
-	bar.Create(50, 1.0, 300, 400, 111.0, func(x, L float64) float64 { return 0 })
+	bar.Create(100, 1.0, 300, 400, 111.0, func(x, L float64) float64 { return 0 })
 
 	//gl.ClearColor(0.4, 0.2, 0.5, 1.0)
 	gl.ClearColor(0.3, 0.3, 0.3, 1.0)
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		DrawColormap(window.width, window.height)
+		DrawColormap(window.width, window.height, 0, 400)
 		DrawHeatBar(bar.U, window.width, window.height, 0, 400)
+		renderer.font.SetColor(1.0, 1.0, 1.0, 1.0)
+		renderer.font.Printf(12, -12+float32(*window_height), 0.5, "t = %5.3f ms", bar.CurrentTime*1000)
 
 		switch method {
 		case solver.Forward:

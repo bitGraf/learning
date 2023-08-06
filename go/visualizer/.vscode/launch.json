@@ -9,7 +9,10 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}"
+            "program": "${fileDirname}",
+            "trace": "log",
+            "showLog": true,
+            "logOutput": "rpc"
         }
     ]
 }
